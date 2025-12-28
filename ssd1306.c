@@ -25,8 +25,8 @@ int oled_write(struct i2c_client *client, bool is_cmd, uint8_t data)
 {
     uint8_t buf[2];
 
-    buf[0] = (is_cmd == true) ? 0x00 : 0x40;   // command mode
-    buf[1] = data;    // command
+    buf[0] = (is_cmd == true) ? 0x00 : 0x40;   // control byte -> command : data
+    buf[1] = data;
 
     return i2c_master_send(client, buf, 2);
 }
