@@ -36,7 +36,7 @@ int oled_write(struct i2c_client *client, bool is_cmd, uint8_t data)
     msleep(100);               // delay
 
     oled_write(client, true, 0xAE); // display off
-    // 추가 화면 방향
+    // 화면 방향
     oled_write(client, true, 0xA1); // 0xA0으로 바꾸면 가로 반전
     oled_write(client, true, 0xC8); // 0xC0으로 바꾸면 세로 반전
 
