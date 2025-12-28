@@ -104,8 +104,13 @@
 1) Build (Ubuntu)
 ```bash
 make
+```
 2) Install / Load (Raspberry Pi)
+```bash
 sudo insmod device_driver_mod.ko
 dmesg -w
+```
 3) Unload (Raspberry Pi)
+```bash
 sudo rmmod device_driver_mod
+```
