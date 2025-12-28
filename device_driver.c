@@ -138,22 +138,21 @@ void led_alert_work_func(struct work_struct *work)
 // =========================================================================  my_timer satrt
 static void my_timer_callback(struct timer_list *t)
 {
-	if(mode == 0) {
+	if(mode == 0){
 		if(set_mode == 0)
 			queue_work(my_workqueue, &ds1302_work);
     	goto resched;
 	}
 
-    if (mode == 1) { 		// 타이머 모드
-		if(is_running && set_mode == 2) {
-			if (timer_s > 0) timer_s--;
-			else if (timer_m > 0)
-			{
+    if(mode == 1){ 		// 타이머 모드
+		if(is_running && set_mode == 2){
+			if (timer_s > 0)
+				timer_s--;
+			else if(timer_m > 0){
 				timer_m--; timer_s = 59;
 				printk(KERN_INFO "Timer: %d min left\n", timer_m); // 분 단위 로그
 			}
-			else 
-			{ 
+			else{ 
 				is_running = 0;
 				timer_finished_alert = 1;
 				queue_work(my_workqueue, &led_alert_work);
@@ -161,23 +160,23 @@ static void my_timer_callback(struct timer_list *t)
 			}
 		}
     } 
-    else if (mode == 2) { // 뽀모도로 모드
+    else if(mode == 2){ // 뽀모도로 모드
 		if(is_running && set_mode == 3){
-			if (timer_s > 0) {
+			if(timer_s > 0){
 				timer_s--;
 			}
-			else {
-				if (timer_m > 0) {
+			else{
+				if(timer_m > 0){
 					timer_m--;
 					timer_s = 59;
 					printk(KERN_INFO "Pomo [%s]: %d min left\n", (pomo_state == 0 ? "WORK" : "REST"), timer_m);
 				}
-				else {
+				else{
 					// 분:초가 모두 0이 된 상황 -> 상태 전환
-					if (pomo_state == 0) {	// 집중 끝
+					if(pomo_state == 0){	// 집중 끝
 						pomo_cur_repeat++;
-
-						if (pomo_cur_repeat < pomo_repeat) {
+						
+						if(pomo_cur_repeat < pomo_repeat){
 							pomo_state = 1;
 							timer_m = pomo_rest;
 							timer_s = 0;
@@ -185,7 +184,7 @@ static void my_timer_callback(struct timer_list *t)
 							queue_work(my_workqueue, &led_alert_work);
 							printk(KERN_INFO ">>> Pomodoro: WORK Done! REST Starts (%d min) <<<\n", pomo_rest);
 						}
-						else {
+						else{
 							is_running = 0; // 모든 반복 완료
 							pomo_cur_repeat = 0;
 							pomo_state = 0;
@@ -194,14 +193,12 @@ static void my_timer_callback(struct timer_list *t)
 							printk(KERN_INFO "### Pomodoro: ALL SETS FINISHED! ###\n");
 						}
 					} 
-					else	 // 휴식 끝 -> 다음 회차 집중
-					{
+					else{	 // 휴식 끝 -> 다음 회차 집중
 						pomo_state = 0;
 						timer_m = pomo_work;
 						timer_s = 0;
 						queue_work(my_workqueue, &led_alert_work);
 						printk(KERN_INFO ">>> Pomodoro: REST Done! Round %d/%d Starts <<<\n", pomo_cur_repeat + 1, pomo_repeat);
-			
 					}
 				}
 			}
@@ -221,7 +218,8 @@ resched:
 
 // ============================================== rotary_key_irq_handler start
 
-static irqreturn_t rotary_key_irq_handler(int irq, void *dev_id) {
+static irqreturn_t rotary_key_irq_handler(int irq, void *dev_id)
+{
     unsigned long current_time = jiffies;		// jiffies는 jiffies.h에 선언되어 있음
     int cur_state;
     
@@ -229,7 +227,7 @@ static irqreturn_t rotary_key_irq_handler(int irq, void *dev_id) {
     static int prev_state = 1; 
 
     // 디바운싱
-    if ((current_time - last_rotary_key_time) < msecs_to_jiffies(DEBOUNCE_MS)) {
+    if((current_time - last_rotary_key_time) < msecs_to_jiffies(DEBOUNCE_MS)){
         return IRQ_HANDLED;
     }
     last_rotary_key_time = current_time;
@@ -239,59 +237,51 @@ static irqreturn_t rotary_key_irq_handler(int irq, void *dev_id) {
     mod_timer(&my_kernel_timer, jiffies + HZ);
 
     // 눌렀을 때 0(Low)
-   if (gpio_get_value(ROTARY_KEY) == 0) {
-        if (mode == 0)
-		{
+   if(gpio_get_value(ROTARY_KEY) == 0){
+        if(mode == 0){
 			set_mode = (set_mode + 1) % 3;      // Clock: 3단계
-			if (set_mode != 0)
-			{
+			if(set_mode != 0){
                 // 설정 모드 진입: 타이머 중지 및 running 상태 해제
                 is_running = 0;
                 del_timer(&my_kernel_timer);
                 printk(KERN_INFO "Clock Setting: Timer Stopped\n");
             }
-			else
-			{
+			else{
                 // 설정 완료 (메인 화면): 타이머 다시 시작
 				ds1302_init_time_date( _ds1302 ,  _ds1302_date);
                 is_running = 1; // 시계는 항상 동작 상태로 간주
                 mod_timer(&my_kernel_timer, jiffies + HZ);
                 printk(KERN_INFO "Clock Main: Timer Restarted\n");
             }
-			
             printk(KERN_INFO "KEY is running : %d\n",is_running);
 		} 
-        else if (mode == 1)
-		{
+        else if(mode == 1){
 			timer_finished_alert = 0;
 			set_mode = (set_mode + 1) % 3; // Timer: 3단계
-			if (set_mode == 2)
-			{
+			if(set_mode == 2){
 				// 설정 완료 (타이머 실행 화면): 타이머 시작
                 is_running = 1;
                 mod_timer(&my_kernel_timer, jiffies + HZ);
                 printk(KERN_INFO "Timer started\n");
 			}
-			else
-			{
+			else{
                // 설정 모드 진입: 타이머 중지 및 running 상태 해제
                 is_running = 0;
                 del_timer(&my_kernel_timer);
                 printk(KERN_INFO "Timer Setting: Timer Stopped\n");
             }
 		}
-		else if (mode == 2) 
-		{
+		else if(mode == 2){
 			timer_finished_alert = 0;
 			set_mode = (set_mode + 1) % 4; // Pomo: 4단계
 		}
         // [핵심] '시작' 단계(Step)에 진입했을 때의 동작만 여기서 직접 처리
-        if (mode == 1 && set_mode == 2) { // 타이머 시작
+        if(mode == 1 && set_mode == 2){ // 타이머 시작
             // is_running = 1;
             // mod_timer(&my_kernel_timer, jiffies + HZ);
             printk(KERN_INFO "Timer: Started via Key\n");
         }
-        else if (mode == 2 && set_mode == 3) { // 뽀모도로 시작
+        else if(mode == 2 && set_mode == 3){ // 뽀모도로 시작
             is_running = 1;
             pomo_state = 0; pomo_cur_repeat = 0;
             timer_m = pomo_work; timer_s = 0;
@@ -318,7 +308,7 @@ static irqreturn_t rotary_key_irq_handler(int irq, void *dev_id) {
     }
 
     // 버튼을 떼는 순간 (Rising Edge: 0 -> 1)
-    else if (prev_state == 1 && cur_state == 0) {
+    else if(prev_state == 1 && cur_state == 0){
         prev_state = 1;  // '뗌' 상태로 업데이트
     }
     
@@ -339,12 +329,11 @@ static void set_num(int* num, int max)
 	else if(*num < 0)
 		*num = max;
 
-	if (old_val != *num) {
+	if(old_val != *num){
         printk(KERN_INFO "Setting Change: %d -> %d (Max: %d)\n", old_val, *num, max);
     }
 
 	rotary_value = 0;
-
 }
 
 // =========================================set_num end
@@ -353,7 +342,7 @@ static void set_num(int* num, int max)
 
 static void clock_handler(void)
 {
-	switch (set_mode) {
+	switch(set_mode){
 		
 		case 0:					// 시계 화면 상태 (RTC 업데이트 등)
         	printk(KERN_INFO "Clock: Settings Saved\n");
@@ -376,7 +365,7 @@ static void clock_handler(void)
 // =========================== timer_handler satrt
 static void timer_handler(void)
 {
-	switch (set_mode) {
+	switch(set_mode){
 		case 0:					// 초 설정
 			is_running = 0;
 			del_timer(&my_kernel_timer); // 설정 중엔 타이머 중지	
@@ -397,7 +386,7 @@ static void timer_handler(void)
 // ====================================pomodoro_handler start
 static void pomodoro_handler(void)
 {
-	switch (set_mode) {
+	switch(set_mode){
 		case 0:						// 집중 시간 설정 (최대 99분)
 			is_running = 0;
 			del_timer(&my_kernel_timer); 	// 설정 중엔 타이머 중지	
@@ -425,7 +414,8 @@ static void pomodoro_handler(void)
 
 // ================================================== tact_irq_handler start
 
-static irqreturn_t tact_irq_handler(int irq, void *dev_id) {
+static irqreturn_t tact_irq_handler(int irq, void *dev_id)
+{
     unsigned long current_time = jiffies;		// jiffies는 jiffies.h에 선언되어 있음
     int cur_state;
     
@@ -433,7 +423,7 @@ static irqreturn_t tact_irq_handler(int irq, void *dev_id) {
     static int prev_state = 0; 
 
     // 디바운싱
-    if ((current_time - last_tact_time) < msecs_to_jiffies(DEBOUNCE_MS)) {
+    if((current_time - last_tact_time) < msecs_to_jiffies(DEBOUNCE_MS)){
         return IRQ_HANDLED;
     }
     last_tact_time = current_time;
@@ -442,7 +432,7 @@ static irqreturn_t tact_irq_handler(int irq, void *dev_id) {
     cur_state = gpio_get_value(TACT_SW); 
 
     // 버튼을 누르는 순간 (Rising Edge: 0 -> 1)
-    if (cur_state == 1) { // Rising Edge
+    if(cur_state == 1){ // Rising Edge
         // 모드를 0, 1, 2로 순환 (0:Clock, 1:Timer, 2:Pomo)
         mode = (mode + 1) % 3; 
         set_mode = 0;
@@ -457,7 +447,7 @@ static irqreturn_t tact_irq_handler(int irq, void *dev_id) {
         gpio_set_value(LED01, (mode == 1));
         gpio_set_value(LED02, (mode == 2));
 
-		if (mode == 0) {
+		if(mode == 0){
             is_running = 1;
             mod_timer(&my_kernel_timer, jiffies + HZ);
         }
@@ -468,7 +458,7 @@ static irqreturn_t tact_irq_handler(int irq, void *dev_id) {
         prev_state = 1; // '눌림' 상태로 업데이트
     }
     // 버튼을 떼는 순간 (Falling Edge: 1 -> 0)
-    else if (prev_state == 1 && cur_state == 0) {
+    else if(prev_state == 1 && cur_state == 0){
         prev_state = 0;  // '뗌' 상태로 업데이트
     }
 	if(mode == 0){
@@ -500,8 +490,7 @@ static irqreturn_t rotary_s1_irq_handler(int irq, void * dev_id)
 	unsigned long current_time = jiffies; // read current clock(Hz) 
 	unsigned long debounce_jiffies = msecs_to_jiffies(5);		// 1. 키 인터럽트와 달리 길게 주면 오히려 필요한 신호도 무시되므로 5ms 짧은 시간 설정
 
-	if(time_before(current_time, last_rotary_s1_time + debounce_jiffies))
-	{
+	if(time_before(current_time, last_rotary_s1_time + debounce_jiffies)){
 		return IRQ_HANDLED;		//5ms 이하 디바운싱 처리
 	}
 
@@ -515,7 +504,7 @@ static irqreturn_t rotary_s1_irq_handler(int irq, void * dev_id)
 	val_s1 = gpio_get_value(ROTARY_S1);
 	
 	// 4. 노이즈 무시를 위해 S1이 하강엣지 상태 즉, 0인지 확인
-	if(val_s1 != 0) {
+	if(val_s1 != 0){
 		return IRQ_HANDLED;
 	}
 	// 3. S2값 읽기
@@ -537,18 +526,18 @@ static irqreturn_t rotary_s1_irq_handler(int irq, void * dev_id)
 	// 무거운 RTC 읽기는 워크큐에 부탁함!
     //schedule_work(&ds1302_work);
 #endif
-	if(val_s1 == 0) {
-		if(val_s2 == 1) {
+	if(val_s1 == 0){
+		if(val_s2 == 1){
 			rotary_value--;
 			printk(KERN_INFO "Rotary: Counter-Clockwise (--) -> %ld\n", rotary_value);
 		}
-		else {
+		else{
 			rotary_value++;
 			printk(KERN_INFO "Rotary: Clockwise (++) -> %ld\n", rotary_value);
 		}
 	}
 
-	switch(mode) {
+	switch(mode){
 		case 0:
 			clock_handler();
 			break;
@@ -590,8 +579,7 @@ static ssize_t rotary_read(struct file*file, char __user* user_buff, size_t coun
 
 	data_update_finish = 0;
 	len = snprintf(buffer, sizeof(buffer), "%d:%d:%ld\n", mode, set_mode, rotary_value);
-	if(copy_to_user(user_buff,buffer,len))
-	{
+	if(copy_to_user(user_buff,buffer,len)){
 		return -EFAULT;
 	}
 	return len;
@@ -609,8 +597,7 @@ static int __init dokidoki_driver_init(void)
 
 	printk(KERN_INFO "=== rotatry initializing ===\n");
 	// 1. alloc device number
-	if(( ret = alloc_chrdev_region(&device_number, 0, 1, DRIVER_NAME )) == -1)
-	{
+	if(( ret = alloc_chrdev_region(&device_number, 0, 1, DRIVER_NAME )) == -1){
 
 		printk(KERN_ERR "ERROR: alloc_chrdev_regin()\n");
 
@@ -618,8 +605,7 @@ static int __init dokidoki_driver_init(void)
 	}
 	// 2. register char device 
 	cdev_init(&dokidoki_cdev, &fops);
-	if((ret = cdev_add(&dokidoki_cdev,device_number, 1)) == -1)
-	{
+	if((ret = cdev_add(&dokidoki_cdev,device_number, 1)) == -1){
 	
 		printk(KERN_ERR "ERROR: chrdev_add()\n");
 		unregister_chrdev_region(device_number,1);
@@ -627,8 +613,7 @@ static int __init dokidoki_driver_init(void)
 	}
 	// 3. create class & create device ex) /dev/rotary_driver
 	dokidoki_class = class_create(THIS_MODULE, CLASS_NAME);	
-	if(IS_ERR(dokidoki_class))
-	{
+	if(IS_ERR(dokidoki_class)){
 		printk(KERN_ERR "ERROR: class_create()\n");
 		cdev_del(&dokidoki_cdev);
 		unregister_chrdev_region(device_number,1);
@@ -637,7 +622,7 @@ static int __init dokidoki_driver_init(void)
 	device_create(dokidoki_class, NULL, device_number, NULL, DRIVER_NAME);
 	// 4. request GPIO
 		// 1. GPIO 유효성 검사		// 다른 곳에서 이미 쓰고 있지 않은지 확인
-    if ( /*!gpio_is_valid(OLED_SDA) || !gpio_is_valid(OLED_SCL) || !gpio_is_valid(OLED_RES)
+    if( /*!gpio_is_valid(OLED_SDA) || !gpio_is_valid(OLED_SCL) || !gpio_is_valid(OLED_RES)
 		 ||*/ !gpio_is_valid(LED00) || !gpio_is_valid(LED01) || !gpio_is_valid(LED02)
 		 || !gpio_is_valid(LED03) || !gpio_is_valid(LED04) || !gpio_is_valid(LED05)
 		 || !gpio_is_valid(LED06) || !gpio_is_valid(LED07) || !gpio_is_valid(ROTARY_S1)
@@ -651,8 +636,7 @@ static int __init dokidoki_driver_init(void)
 		 || */gpio_request(LED00, "LED00") || gpio_request(LED01, "LED01") || gpio_request(LED02, "LED02")
 		 || gpio_request(LED03, "LED03") || gpio_request(LED04, "LED04") || gpio_request(LED05, "LED05")
 		 || gpio_request(LED06, "LED06") || gpio_request(LED07, "LED07") || gpio_request(ROTARY_S1, "ROTARY_S1")
-		 || gpio_request(ROTARY_S2, "ROTARY_S2") || gpio_request(ROTARY_KEY, "ROTARY_KEY") || gpio_request(TACT_SW, "TACT_SW"))
-	{
+		 || gpio_request(ROTARY_S2, "ROTARY_S2") || gpio_request(ROTARY_KEY, "ROTARY_KEY") || gpio_request(TACT_SW, "TACT_SW")) {
 			
 		printk(KERN_ERR "ERROR: gpio_request()\n");
 
@@ -682,8 +666,7 @@ static int __init dokidoki_driver_init(void)
 	// 5. assign GPIO to irq
 	rotary_s1_irq = gpio_to_irq(ROTARY_S1);
 	ret = request_irq(rotary_s1_irq, rotary_s1_irq_handler /* int handler */ , IRQF_TRIGGER_FALLING,"my_rotary_S1_irq",NULL); 
-	if(ret)
-	{
+	if(ret){
 
 		printk(KERN_ERR "ERROR: request_irq() : %d\n", ROTARY_S1);
 		return ret;
@@ -691,8 +674,7 @@ static int __init dokidoki_driver_init(void)
 
 	rotary_key_irq = gpio_to_irq(ROTARY_KEY);
 	ret = request_irq(rotary_key_irq, rotary_key_irq_handler /* int handler */ , IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,"my_rotary_key_irq",NULL); 
-	if(ret)
-	{
+	if(ret){
 
 		printk(KERN_ERR "ERROR: request_irq() : %d\n", ROTARY_KEY);
 		return ret;
@@ -700,25 +682,22 @@ static int __init dokidoki_driver_init(void)
 
 	tact_irq = gpio_to_irq(TACT_SW);
 	ret = request_irq(tact_irq, tact_irq_handler /* tact handler */ , IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,"my_tact_irq",NULL); 
-	if(ret)
-	{
+	if(ret){
 
 		printk(KERN_ERR "ERROR: request_irq() : %d\n", TACT_SW);
 		return ret;
 	}
 
-
 	// ssd1306 init
 	ret = init_ssd1306();
-	if (ret) {
+	if(ret){
 		printk(KERN_ERR "OLED: init_ssd1306() failed: %d\n", ret);
 		return ret;   // 너 cleanup 라벨로 점프하는 방식 추천
 	}
 
 	// ds1302 init
 	ret = ds1302_gpio_init(_ds1302);
-	if(ret)
-	{
+	if(ret){
 		printk(KERN_ERR "ERROR: request_irq()\n");
 		return ret;
 	}
@@ -743,7 +722,6 @@ static int __init dokidoki_driver_init(void)
 // 	ds1302_read_time(_ds1302,&_ds1302_date);
 // 	ds1302_read_date(_ds1302,&_ds1302_date);
 
-	
 	INIT_WORK(&ds1302_work, ds1302_update_work_func);
 	printk(KERN_INFO "Info: rotary driver init Success\n");
 	
@@ -773,8 +751,7 @@ static void __exit dokidoki_driver_exit(void)
 	gpio_free(ROTARY_S1);
 	gpio_free(ROTARY_KEY);
 
-	for(int i = 0; i < 8; i++)
-	{
+	for(int i = 0; i < 8; i++){
 		gpio_free(LED00 + i);
 	}
 
