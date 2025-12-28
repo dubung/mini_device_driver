@@ -14,7 +14,6 @@ void oled_put_string(struct i2c_client*, int, int, char*);
 void oled_put_num_16x10(struct i2c_client*, int, int, int);
 void oled_put_string_16x10(struct i2c_client*, int, int, char*);
 void oled_update_work_func(struct work_struct*);
-
 void oled_draw_underline(struct i2c_client*, int, int, int, bool);
 
 int init_ssd1306(void);
