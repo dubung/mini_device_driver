@@ -100,9 +100,16 @@
 - **Kernel**: 6.1.93-v8+
 
 
-### 1) 빌드
+### 1) 빌드 (ubuntu)
 ```bash
 make
 
+### 2) Install / Load (raspberry pi)
+```bash
+sudo insmod device_driver_mod.ko
+dmesg -w
 
+### 3) Unload (raspberry Pi)
+```bash
+sudo rmmod device_driver
 
