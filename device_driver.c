@@ -699,7 +699,7 @@ static int __init dokidoki_driver_init(void)
 	// timer 초기화
 	timer_setup(&my_kernel_timer, my_timer_callback, 0);
 
-	// 5. assign GPIO to irq
+	// assign GPIO to irq
 	rotary_s1_irq = gpio_to_irq(ROTARY_S1);
 	ret = request_irq(rotary_s1_irq, rotary_s1_irq_handler /* int handler */ , IRQF_TRIGGER_FALLING,"my_rotary_S1_irq",NULL); 
 	if(ret){
